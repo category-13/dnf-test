@@ -1,12 +1,13 @@
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <title>DNF 연습 페이지</title>
-</head>
-<body>
-  <h1>던파 캐릭터 검색 연습중!</h1>
-  <p>Hello, GitHub Pages!</p>
-</body>
-</html>
+<h2>닉네임 입력</h2>
+<input id="name" placeholder="닉네임 입력">
+<button onclick="showName()">확인</button>
+<p id="result"></p>
+
+<script>
+function showName() {
+  const val = document.getElementById("name").value;
+  document.getElementById("result").innerText = "입력한 닉네임: " + val;
+}
+</script>
+
 
