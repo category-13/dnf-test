@@ -1,13 +1,137 @@
-<h2>닉네임 입력</h2>
-<input id="name" placeholder="닉네임 입력">
-<button onclick="showName()">확인</button>
-<p id="result"></p>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>DNF 캐릭터 검색 (연습용)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 40px; max-width: 820px; }
+    h1 { margin-bottom: 8px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin: 12px 0; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    select, input, button { padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; }
+    button { cursor: pointer; }
+    .muted { color: #6b7280; font-size: 14px; }
+    pre { background: #f9fafb; padding: 12px; border-radius: 8px; overflow: auto; }
+    .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+    .item { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; }
+  </style>
+</head>
+<body>
+  <h1>DNF 캐릭터 검색 (연습용)</h1>
+  <p class="muted">
+    지금은 <b>DEMO 모드</b>라서 API를 실제 호출하지 않고, 호출될 URL만 보여줍니다.
+    프록시 서버가 준비되면 <code>DEMO_MODE=false</code>로 바꾸고 <code>API_BASE</code>에 주소를 넣으세요.
+  </p>
 
-<script>
-function showName() {
-  const val = document.getElementById("name").value;
-  document.getElementById("result").innerText = "입력한 닉네임: " + val;
-}
-</script>
+  <div class="card">
+    <div class="row">
+      <label>서버:
+        <select id="server">
+          <option value="cain">cain</option>
+          <option value="diregie">diregie</option>
+          <option value="siroco">siroco</option>
+          <option value="prey">prey</option>
+          <option value="hilder">hilder</option>
+        </select>
+      </label>
+      <label>닉네임:
+        <input id="name" placeholder="캐릭터 닉네임" />
+      </label>
+      <button id="btnSearch">검색</button>
+    </div>
+    <div class="muted" style="margin-top:8px">
+      ※ 백엔드 없이 브라우저에서 네오플 API를 직접 호출하면 <b>API Key가 노출</b>되므로 절대 금지.
+    </div>
+  </div>
 
+  <div id="panel"></div>
+
+  <script>
+    // ===== 설정 =====
+    const DEMO_MODE = true;                 // 프록시 준비 전: true, 준비 후: false
+    const API_BASE  = "https://YOUR-BACKEND.example.com"; // 나중에 Render 등으로 올린 주소
+    // =================
+
+    const el = (id) => document.getElementById(id);
+    el('btnSearch').addEventListener('click', onSearch);
+
+    async function onSearch() {
+      const server = el('server').value;
+      const name   = el('name').value.trim();
+      if (!name) return alert('닉네임을 입력하세요.');
+
+      const demoUrl = `https://api.dfoneople.com/df/servers/${server}/characters?characterName=${encodeURIComponent(name)}&limit=10&apikey=YOUR_KEY`;
+
+      if (DEMO_MODE) {
+        el('panel').innerHTML = `
+          <div class="card">
+            <h3>DEMO 모드</h3>
+            <p>아래는 실제 호출될 URL(예시)입니다. 백엔드 준비 후 DEMO_MODE=false로 바꾸세요.</p>
+            <pre>${demoUrl}</pre>
+          </div>`;
+        return;
+      }
+
+      // 실제 호출(프록시 경유)
+      try {
+        const res = await fetch(`${API_BASE}/api/search?server=${server}&name=${encodeURIComponent(name)}`);
+        if (!res.ok) throw new Error('검색 실패');
+        const rows = await res.json();
+        renderList(rows, server);
+      } catch (e) {
+        el('panel').innerHTML = `<div class="card"><b>오류:</b> ${e.message}</div>`;
+      }
+    }
+
+    function renderList(rows, server) {
+      if (!rows || rows.length === 0) {
+        el('panel').innerHTML = `<div class="card">검색 결과가 없습니다.</div>`;
+        return;
+      }
+      const items = rows.map(r => `
+        <div class="item">
+          <div><b>${r.characterName}</b> (${r.jobGrowName})</div>
+          <div class="muted">레벨: ${r.level ?? '-'} | 서버: ${server}</div>
+          <button onclick="loadDetail('${server}','${r.characterId}')">장비 보기</button>
+        </div>`).join('');
+      el('panel').innerHTML = `
+        <div class="card">
+          <h3>검색 결과</h3>
+          <div class="list">${items}</div>
+        </div>`;
+    }
+
+    async function loadDetail(server, cid) {
+      try {
+        const res = await fetch(`${API_BASE}/api/character?server=${server}&characterId=${cid}`);
+        if (!res.ok) throw new Error('상세 조회 실패');
+        const info = await res.json();
+        renderDetail(info);
+      } catch (e) {
+        el('panel').innerHTML = `<div class="card"><b>오류:</b> ${e.message}</div>`;
+      }
+    }
+
+    function renderDetail(info) {
+      const b = info.basic;
+      const eq = info.equipment?.equipment ?? [];
+      const equipList = eq.map(e => {
+        const ench = e.enchant?.status?.map(s => `${s.name}+${s.value}`).join(', ') || '-';
+        const rein = e.reinforce ?? 0;
+        const amp  = e.amplificationName ? ` (${e.amplificationName})` : '';
+        return `<div class="item"><b>[${e.slotName}]</b> ${e.itemName}<br/>증/강: +${rein}${amp}<br/>마부: ${ench}</div>`;
+      }).join('');
+      el('panel').innerHTML = `
+        <div class="card">
+          <h3>${b.characterName} — ${b.jobGrowName}</h3>
+          <div class="muted">레벨 ${b.level ?? '-'} | 서버 ${b.serverId} | 명성 ${b.fame ?? '-'}</div>
+          <img src="https://img-api.neople.co.kr/df/servers/${b.serverId}/characters/${b.characterId}?zoom=2" alt="char" style="margin:10px 0;border-radius:12px"/>
+          <h4>장착 장비</h4>
+          <div class="list">${equipList || '데이터 없음'}</div>
+        </div>`;
+    }
+  </script>
+</body>
+</html>
 
