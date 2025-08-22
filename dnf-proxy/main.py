@@ -6,7 +6,7 @@ API_KEY = os.getenv("NEOPLE_API_KEY")
 if not API_KEY:
     raise RuntimeError("환경변수 NEOPLE_API_KEY가 없습니다.")
 
-BASE = "https://api.dfoneople.com/df"
+BASE = "https://api.neople.co.kr/df"
 
 app = FastAPI(title="DNF Proxy")
 
