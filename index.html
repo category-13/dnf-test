@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <title>DNF 캐릭터 검색 (연습용)</title>
+  <title>DNF 캐릭터 검색</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body { font-family: system-ui, sans-serif; margin: 40px; max-width: 860px; }
@@ -18,16 +18,10 @@
   </style>
 </head>
 <body>
-  <h1>DNF 캐릭터 검색 (연습용)</h1>
-  <p class="muted">
-    지금은 <b>DEMO 모드</b>라 실제 API 호출 대신, 호출될 URL만 보여줍니다.
-    프록시 서버(백엔드)가 준비되면 <code>DEMO_MODE=false</code>로 바꾸고 <code>API_BASE</code>에 주소를 넣으세요.
-  </p>
-
+  <h1>DNF 캐릭터 검색</h1>
   <div class="card">
     <div class="row">
       <label>서버:
-        <!-- 화면엔 한글표시, API로는 영문 ID(value)가 넘어감 -->
         <select id="server">
           <option value="cain">카인</option>
           <option value="diregie">디레지에</option>
@@ -45,17 +39,16 @@
       <button id="btnSearch">검색</button>
     </div>
     <div class="muted" style="margin-top:8px">
-      ※ 브라우저에서 네오플 API를 직접 호출하면 <b>API Key가 노출</b>되므로 금지. (반드시 프록시 서버 사용)
+      ※ API Key는 백엔드에서만 사용. 프런트에 넣지 말 것.
     </div>
   </div>
 
   <div id="panel"></div>
 
   <script>
-    // ===== 설정값 =====
-    const DEMO_MODE = true;                           // 백엔드 준비 전: true
-    const API_BASE  = "https://dnf-test.onrender.com"; // 백엔드 배포 후 수정
-    // ==================
+    // === 설정 ===
+    const API_BASE = "https://dnf-test.onrender.com"; // ← Render 주소로 교체
+    // ============
 
     const $ = (id) => document.getElementById(id);
     $('btnSearch').addEventListener('click', onSearch);
@@ -65,19 +58,6 @@
       const name   = $('name').value.trim();
       if (!name) return alert('닉네임을 입력하세요.');
 
-      const demoUrl = `https://api.dfoneople.com/df/servers/${server}/characters?characterName=${encodeURIComponent(name)}&limit=10&apikey=YOUR_KEY`;
-
-      if (DEMO_MODE) {
-        $('panel').innerHTML = `
-          <div class="card">
-            <h3>DEMO 모드</h3>
-            <p>아래는 실제 호출될 URL(예시)입니다. 백엔드 준비 후 DEMO_MODE=false로 바꾸세요.</p>
-            <pre>${demoUrl}</pre>
-          </div>`;
-        return;
-      }
-
-      // 실제 호출(프록시 서버 경유)
       try {
         const res = await fetch(`${API_BASE}/api/search?server=${server}&name=${encodeURIComponent(name)}`);
         if (!res.ok) throw new Error('검색 실패');
